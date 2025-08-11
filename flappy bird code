@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Lyria — Flappy Clone (Cheat + Enhanced Graphics)</title>
+<style>
+  body{margin:0;background:linear-gradient(#70c5ce,#b2e9f5);}
+  canvas{display:block;margin:0 auto;background:transparent;}
+</style>
+</head>
+<body>
+<canvas id="game" width="900" height="600"></canvas>
+<script>
+const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
+let W=canvas.width,H=canvas.height;
+let state='menu',gravity=1100,flapImpulse=-350,speed=200;
+let bird={x:170,y:H/2,r:18,vy:0,rotation:0,frame:0};
+let pipes=[],score=0,best=0,spawnTimer=0,pipeInterval=1.4;
+let noclip=false,fastMode=false,particles=[];
+let cheatSeq=['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight'],cheatPos=0;
+
+window.addEventListener('keydown',e=>{
+ if(e.code==='Space') flap();
+ if(e.code===cheatSeq[cheatPos]){
+   cheatPos++;
+   if(cheatPos===cheatSeq.length){cheatPos=0;openModMenu();}
+ } else cheatPos=0;
+});
+canvas.addEventListener('mousedown',flap);
+
+function flap(){if(state==='menu')state='playing';if(state==='playing'){bird.vy=flapImpulse;spawnParticles();}else if(state==='dead')reset();}
+function spawnPipe(){const gap=160,top=Math.random()*(H-gap-160)+80;pipes.push({x:W+60,top:top,gap:gap,passed:false});}
+function circleRectCollide(cx,cy,r,rx,ry,rw,rh){const x=Math.max(rx,Math.min(cx,rx+rw)),y=Math.max(ry,Math.min(cy,ry+rh));return ((cx-x)**2+(cy-y)**2)<r*r;}
+function reset(){pipes=[];score=0;bird.y=H/2;bird.vy=0;particles=[];state='menu';}
+function spawnParticles(){for(let i=0;i<6;i++){particles.push({x:bird.x-8,y:bird.y+(Math.random()*20-10),vx:-100+Math.random()*-50,vy:Math.random()*-40,r:2+Math.random()*2,ttl:0.6});}}
+function update(dt){if(state==='playing'){bird.vy+=gravity*dt;bird.y+=bird.vy*dt;bird.rotation=Math.max(-0.8,Math.min(1.2,bird.vy/500));spawnTimer-=dt;if(spawnTimer<=0){spawnTimer=pipeInterval;spawnPipe();}for(const p of pipes){p.x-=speed*dt;}for(const p of pipes){if(!p.passed&&p.x+70<bird.x){p.passed=true;score++;}if(!noclip){if(circleRectCollide(bird.x,bird.y,bird.r,p.x,0,70,p.top)||circleRectCollide(bird.x,bird.y,bird.r,p.x,p.top+p.gap,70,H-(p.top+p.gap)-48))state='dead';}}pipes=pipes.filter(p=>p.x>-200);if(!noclip&&bird.y+bird.r>H-48)state='dead';if(fastMode)speed=400;}for(const pa of particles){pa.x+=pa.vx*dt;pa.y+=pa.vy*dt;pa.vy+=900*dt;pa.ttl-=dt;}particles=particles.filter(p=>p.ttl>0);}
+function drawBackground(){ctx.fillStyle='#70c5ce';ctx.fillRect(0,0,W,H);for(let i=0;i<5;i++){drawCloud((i*200+Date.now()/30)%(W+200)-100,80+(i%3)*30,1);} }
+function drawCloud(x,y,s){ctx.beginPath();ctx.ellipse(x,y,48*s,28*s,0,0,Math.PI*2);ctx.ellipse(x+36*s,y+6*s,34*s,20*s,0,0,Math.PI*2);ctx.ellipse(x-36*s,y+6*s,34*s,20*s,0,0,Math.PI*2);ctx.fillStyle='rgba(255,255,255,0.85)';ctx.fill();}
+function draw(){drawBackground();ctx.fillStyle='#2b8a3e';for(const p of pipes){ctx.fillRect(p.x,0,70,p.top);ctx.fillRect(p.x,p.top+p.gap,70,H-(p.top+p.gap)-48);}for(const pa of particles){ctx.beginPath();ctx.arc(pa.x,pa.y,pa.r,0,Math.PI*2);ctx.fillStyle='rgba(255,200,100,0.9)';ctx.fill();}ctx.save();ctx.translate(bird.x,bird.y);ctx.rotate(bird.rotation);ctx.fillStyle='#ffcc00';ctx.beginPath();ctx.ellipse(0,0,bird.r*1.1,bird.r*0.9,0,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.ellipse(-6,6,10,6,0,0,Math.PI*2);ctx.fillStyle='#ffb400';ctx.fill();ctx.beginPath();ctx.arc(6,-4,3,0,Math.PI*2);ctx.fillStyle='#000';ctx.fill();ctx.restore();ctx.fillStyle='#000';ctx.font='20px Arial';ctx.fillText(score,20,30);}
+function loop(){update(0.016);draw();requestAnimationFrame(loop);}requestAnimationFrame(loop);
+function openModMenu(){const noc=confirm('Activer NoClip ? OK=Oui / Annuler=Non');noclip=noc;const fast=confirm('Activer mode rapide ?');fastMode=fast;}
+</script>
+</body>
+</html>
